@@ -54,8 +54,8 @@ describe('Indexer durability', () => {
     // More specifically, killing the service while it's indexing then bringing it back up again
     // should not result in re-indexing of the already indexed blocks
     throw Error('todo');
-  })
-})
+  });
+});
 
 describe('Block invalidation', () => {
   it('should not return blocks from invalidatedHeight onwards', async () => {
@@ -65,6 +65,6 @@ describe('Block invalidation', () => {
 
   it('should not return transactions from invalidated blocks', async () => {
     // invalidating block 100 should invalidate all of its transactions
-    throw Error('todo')
-  })
+    throw Error('todo');
+  });
 });

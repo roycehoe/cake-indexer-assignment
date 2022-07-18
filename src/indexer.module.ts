@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 import { resolve, join } from 'path';
 import { IndexerController } from './indexer.controller';
-import { JSON_BLOCKS, JsonBlockchainClient } from './providers/blockchain/JsonBlockchainClient';
-import {BlockIndexer} from "./block.indexer";
+import {
+  JSON_BLOCKS,
+  JsonBlockchainClient,
+} from './providers/blockchain/JsonBlockchainClient';
+import { BlockIndexer } from './block.indexer';
 
 @Module({
   imports: [],
@@ -17,8 +20,8 @@ import {BlockIndexer} from "./block.indexer";
     JsonBlockchainClient,
     {
       provide: JSON_BLOCKS,
-      useValue: resolve(join(__dirname, '..', 'test', 'resources', '200.json'))
-    }
-  ]
+      useValue: resolve(join(__dirname, '..', 'test', 'resources', '200.json')),
+    },
+  ],
 })
 export class IndexerModule {}

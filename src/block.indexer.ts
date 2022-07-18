@@ -7,6 +7,5 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class BlockIndexer {
-  constructor(private readonly blockchainClient: JsonBlockchainClient) {
-  }
+  constructor(private readonly blockchainClient: JsonBlockchainClient) {}
 }
