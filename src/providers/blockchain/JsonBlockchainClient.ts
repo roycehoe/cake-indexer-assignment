@@ -23,8 +23,16 @@ export class JsonBlockchainClient implements BlockchainClient, OnApplicationBoot
     this.blocks = JSON.parse(readFileSync(this.path).toString()) as Block[];
   }
 
+  /**
+   * Fetches the block from a blockchain, simulating non-deterministic response time
+   */
   async getBlockByHeight(height: number): Promise<Block | undefined> {
-    const blocks = this.blocks.filter(block => height === block.height)
-    return blocks[0]
+    const blocks = this.blocks.filter(block => height === block.height);
+    return blocks[0];
+  }
+
+  async getBlockByHash(hash: string): Promise<Block | undefined> {
+    const blocks = this.blocks.filter(block => hash === block.hash);
+    return blocks[0];
   }
 }
