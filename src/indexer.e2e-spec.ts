@@ -40,12 +40,6 @@ describe('Indexer e2e', () => {
         throw Error('todo');
       });
     });
-
-    describe('Block invalidation', () => {
-      it('should not return invalidated blocks', async () => {
-        throw Error('todo');
-      });
-    });
   });
 
   describe('/api/addresses/{address}/transactions', () => {
@@ -53,4 +47,24 @@ describe('Indexer e2e', () => {
       throw Error('todo');
     });
   });
+});
+
+describe('Indexer durability', () => {
+  it('should not lose indexed state if it goes down while indexing', () => {
+    // More specifically, killing the service while it's indexing then bringing it back up again
+    // should not result in re-indexing of the already indexed blocks
+    throw Error('todo');
+  })
+})
+
+describe('Block invalidation', () => {
+  it('should not return blocks from invalidatedHeight onwards', async () => {
+    // invalidating block 100 should invalidate block 100, 101, 102, ...
+    throw Error('todo');
+  });
+
+  it('should not return transactions from invalidated blocks', async () => {
+    // invalidating block 100 should invalidate all of its transactions
+    throw Error('todo')
+  })
 });
