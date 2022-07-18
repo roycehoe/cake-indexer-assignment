@@ -30,7 +30,7 @@ describe('JsonFileBlockchain', () => {
   it('should serve blocks in json file as blockchain data', async () => {
     expect(await blockchainClient.getBlockByHeight(0)).toStrictEqual(jsonBlocks[0]);
     expect(await blockchainClient.getBlockByHeight(100)).toStrictEqual(jsonBlocks[100]);
-    expect(await blockchainClient.getBlockByHeight(200)).toStrictEqual(jsonBlocks[200]);
+    expect(await blockchainClient.getBlockByHeight(199)).toStrictEqual(jsonBlocks[199]);
   });
 
   it('should get chain height', async () => {
