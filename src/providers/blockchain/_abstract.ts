@@ -4,6 +4,7 @@
  * underlying blockchain.
  */
 export interface BlockchainClient {
+  getChainHeight(): Promise<number>
   getBlockByHash(hash: string): Promise<Block | undefined>
   getBlockByHeight(height: number): Promise<Block | undefined>
 }

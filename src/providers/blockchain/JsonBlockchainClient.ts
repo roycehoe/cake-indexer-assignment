@@ -17,6 +17,12 @@ export class JsonBlockchainClient implements BlockchainClient, OnApplicationBoot
   constructor(@Inject(JSON_BLOCKS) private readonly path: string) {
   }
 
+  async getChainHeight(): Promise<number> {
+    return this.simulateAsync(() => {
+      return this.blocks.length;
+    })
+  }
+
   async getBlockByHeight(height: number): Promise<Block | undefined> {
     return this.simulateAsync(() => {
       const blocks = this.blocks.filter(block => height === block.height);
