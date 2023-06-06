@@ -1,24 +1,25 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { BlockIndexer } from './block.indexer';
 
 @Controller('api/blocks')
 export class IndexerController {
+  constructor(private readonly blockIndexer: BlockIndexer) {}
+
   @Get()
-  getBlock(): string {
-    return 'getBlock';
+  getBlocks(@Query('maxHeight') maxHeight?: string): string {
+    return this.blockIndexer.getBlock(maxHeight);
   }
 
-  @Get(':height')
-  getBlockByHeight(@Param('height') height: string): string {
-    return `height:${height} getBlockByHeight`;
-  }
-
-  @Get(':maxHeight')
-  getBlockByMaxHeight(@Param('maxHeight') maxHeight?: string): string {
-    return `max height:${maxHeight} getBlockByMaxHeight`;
-  }
-
-  @Get(':hash')
-  getBlockByHash(@Param('hash') hash: string): string {
-    return `hash:${hash} getBlockByHash`;
+  @Post()
+  findBlocks(
+    @Body() searchParam: { field: 'height' | 'hash'; param: string },
+  ): {
+    field: 'height' | 'hash';
+    param: string;
+  } {
+    return this.blockIndexer.findBlocks({
+      field: searchParam.field,
+      param: searchParam.param,
+    });
   }
 }
