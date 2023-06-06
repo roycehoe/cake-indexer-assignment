@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JsonBlockchainClient } from './providers/blockchain/JsonBlockchainClient';
+import { Block } from './providers/blockchain/_abstract';
+import { BlockIndexerSearchField, BlockIndexerSearchParams } from './types';
 
 /**
  * TODO: Index the blocks provided by the client and expose via RESTful endpoint
@@ -8,17 +10,28 @@ import { JsonBlockchainClient } from './providers/blockchain/JsonBlockchainClien
 @Injectable()
 export class BlockIndexer {
   constructor(private readonly blockchainClient: JsonBlockchainClient) {}
-  getBlock(height?: string): string {
+
+  async getBlocks(height?: number): Promise<Block[]> {
     if (height) {
-      return `maxHeight:${height} getBlockByMaxHeight`;
+      const allBlocksAtHeight =
+        await this.blockchainClient.getBlocksOfMaxHeight(height);
+      return allBlocksAtHeight;
     }
-    return 'getBlock';
+    const allBlocks = await this.blockchainClient.getAllBlocks();
+    return allBlocks;
   }
 
-  findBlocks(searchParam: { field: 'height' | 'hash'; param: string }): {
-    field: 'height' | 'hash';
-    param: string;
-  } {
-    return searchParam;
+  async findBlocks(searchParam: BlockIndexerSearchParams): Promise<Block> {
+    if (searchParam.field === BlockIndexerSearchField.HASH) {
+      const foundBlocks = await this.blockchainClient.getBlockByHash(
+        searchParam.param,
+      );
+      return foundBlocks;
+    }
+
+    const foundBlocks = await this.blockchainClient.getBlocksAtHeight(
+      Number(searchParam.param),
+    );
+    return foundBlocks[0];
   }
 }
