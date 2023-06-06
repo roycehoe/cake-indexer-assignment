@@ -21,4 +21,14 @@ export class IndexerController {
       param: searchParam.param,
     });
   }
+
+  @Post()
+  findBlocksTransactions(
+    @Body() searchParam: BlockIndexerSearchParams,
+  ): Promise<Block | Block[]> {
+    return this.blockIndexer.findBlocks({
+      field: searchParam.field,
+      param: searchParam.param,
+    });
+  }
 }
