@@ -11,9 +11,9 @@ function isLegitimateBlock(currentBlock: Block, nextBlock: Block) {
   return nextBlock.previousblockhash === currentBlock.hash;
 }
 
-function getBestChain(blocks: Block[]): Block[] {
+function getBestChainedBlocks(blocks: Block[]): Block[] {
   const bestChain: Block[] = [];
-  const suspiciousBlocks: Block[] = [];
+  const quarantinedBlocks: Block[] = [];
   let currentHeight = 0;
 
   for (let i = 0; i < blocks.length - 1; i++) {
@@ -21,27 +21,22 @@ function getBestChain(blocks: Block[]): Block[] {
     const nextBlock = blocks[i + 1];
     if (isLegitimateBlock(currentBlock, nextBlock)) {
       bestChain.push(currentBlock);
-      currentHeight = currentBlock.height;
+      currentHeight = nextBlock.height;
       continue;
     }
 
     if (currentBlock.height === nextBlock.height) {
-      suspiciousBlocks.push(currentBlock);
+      quarantinedBlocks.push(currentBlock);
       continue;
     }
-
-    if (nextBlock.height !== currentBlock.height) {
-      //nextBlock contains verification of correct block from suspicious blocks
-      bestChain.push(
-        suspiciousBlocks.filter(
-          (block) => nextBlock.previousblockhash === block.hash,
-        )[0],
-      );
-      continue;
-    }
+    bestChain.push(
+      quarantinedBlocks.filter(
+        (block) => nextBlock.previousblockhash === block.hash,
+      )[0],
+    );
   }
 
-  bestChain.push(blocks[-1]);
+  bestChain.push(blocks.at(-1));
   return bestChain;
 }
 
@@ -53,9 +48,9 @@ function getBlockHashIndex(blocks: Block[]): Map<string, Block> {
   return blockHashIndex;
 }
 
-function getBlockHeightIndex(bestChain: Block[]): Map<number, Block> {
+function getBlockHeightIndex(blocks: Block[]): Map<number, Block> {
   const blockHeightIndex = new Map();
-  for (const block of bestChain) {
+  for (const block of blocks) {
     blockHeightIndex.set(block.height, block);
   }
   return blockHeightIndex;
@@ -95,9 +90,12 @@ export class BlockIndexer {
 
   private async initializeIndexes() {
     const allBlocks = await this.blockchainClient.getAllBlocks();
-    this.blockHeightIndex = getBlockHeightIndex(allBlocks);
-    this.blockHashIndex = getBlockHashIndex(allBlocks);
-    this.transactionAddressIndex = getTransactionAddressIndex(allBlocks);
+    const bestChainedBlocks = getBestChainedBlocks(allBlocks);
+
+    this.blockHeightIndex = getBlockHeightIndex(bestChainedBlocks);
+    this.blockHashIndex = getBlockHashIndex(bestChainedBlocks);
+    this.transactionAddressIndex =
+      getTransactionAddressIndex(bestChainedBlocks);
   }
 
   async getBlocks(height?: number): Promise<Block[]> {
