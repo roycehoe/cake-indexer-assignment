@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JsonBlockchainClient } from './providers/blockchain/JsonBlockchainClient';
 import { Block, Tx } from './providers/blockchain/_abstract';
-import { BlockIndexerSearchField, BlockIndexerSearchParams } from './types';
 
 /**
  * TODO: Index the blocks provided by the client and expose via RESTful endpoint
@@ -12,6 +11,10 @@ function isLegitimateBlock(currentBlock: Block, nextBlock: Block) {
 }
 
 function getBestChainedBlocks(blocks: Block[]): Block[] {
+  if (blocks.length === 0) {
+    return [];
+  }
+
   const bestChain: Block[] = [];
   const quarantinedBlocks: Block[] = [];
   let currentHeight = 0;
@@ -83,6 +86,7 @@ export class BlockIndexer {
   blockHashIndex: Map<string, Block> = new Map();
   blockHeightIndex: Map<number, Block> = new Map();
   transactionAddressIndex: Map<number, Tx> = new Map();
+  blocks: Block[] = [];
 
   constructor(private readonly blockchainClient: JsonBlockchainClient) {
     this.initializeIndexes();
@@ -90,35 +94,34 @@ export class BlockIndexer {
 
   private async initializeIndexes() {
     const allBlocks = await this.blockchainClient.getAllBlocks();
-    const bestChainedBlocks = getBestChainedBlocks(allBlocks);
+    this.blocks = getBestChainedBlocks(allBlocks);
 
-    this.blockHeightIndex = getBlockHeightIndex(bestChainedBlocks);
-    this.blockHashIndex = getBlockHashIndex(bestChainedBlocks);
-    this.transactionAddressIndex =
-      getTransactionAddressIndex(bestChainedBlocks);
+    this.blockHeightIndex = getBlockHeightIndex(this.blocks);
+    this.blockHashIndex = getBlockHashIndex(this.blocks);
+    this.transactionAddressIndex = getTransactionAddressIndex(this.blocks);
   }
 
-  async getBlocks(height?: number): Promise<Block[]> {
-    if (height) {
-      const allBlocksAtHeight =
-        await this.blockchainClient.getBlocksOfMaxHeight(height);
-      return allBlocksAtHeight;
-    }
-    const allBlocks = await this.blockchainClient.getAllBlocks();
-    return allBlocks;
-  }
-
-  async findBlocks(searchParam: BlockIndexerSearchParams): Promise<Block> {
-    if (searchParam.field === BlockIndexerSearchField.HASH) {
-      const foundBlocks = await this.blockchainClient.getBlockByHash(
-        searchParam.param,
-      );
-      return foundBlocks;
-    }
-
-    const foundBlocks = await this.blockchainClient.getBlocksAtHeight(
-      Number(searchParam.param),
+  getBlocksBelowHeight(height: string): Block[] {
+    const blocksBelowHeight = this.blocks.filter(
+      (block) => Number(height) <= block.height,
     );
-    return foundBlocks[0];
+    return blocksBelowHeight;
+  }
+
+  isHeight(heightOrHash: number | string) {
+    return !!Number(heightOrHash);
+  }
+
+  getAllBlocks() {
+    return this.blocks;
+  }
+
+  findBlocks(heightOrHash?: string): Block[] | Block {
+    if (this.isHeight(heightOrHash)) {
+      const height = Number(heightOrHash);
+      return this.blockHeightIndex.get(height);
+    }
+
+    return this.blockHashIndex.get(heightOrHash);
   }
 }
