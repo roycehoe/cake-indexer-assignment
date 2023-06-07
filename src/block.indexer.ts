@@ -17,7 +17,7 @@ function isBlockChainBroken(currentBlock: Block, nextBlock: Block): boolean {
 function getBestChainedBlocks(blocks: Block[]): Block[] {
   /*
   Assumptions:
-   - The last block is always part of the best chianed block
+   - The last block returned from the JsonBlockchainClient is assumed to be part of the best blockchain
    - The JsonBlockchainClient would always return blocks sorted by height, in ascending order. No sorting is needed, improving the time complexity of this function
   */
   if (blocks.length === 0) {
@@ -44,6 +44,7 @@ function getBestChainedBlocks(blocks: Block[]): Block[] {
     }
 
     if (isBlockChainBroken(currentBlock, nextBlock)) {
+      bestChain.push(currentBlock);
       return bestChain;
     }
     bestChain.push(

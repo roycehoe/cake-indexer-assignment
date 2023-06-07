@@ -1,5 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
 import { IndexerModule } from './indexer.module';
 
@@ -32,6 +32,10 @@ describe('Indexer e2e', () => {
     });
 
     it('should list blocks', async () => {
+      // return request(app.getHttpServer())
+      //   .get('/api/blocks')
+      //   .expect(200)
+      //   .expect({});
       throw Error('todo');
     });
 
