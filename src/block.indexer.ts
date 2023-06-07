@@ -10,7 +10,16 @@ function isLegitimateBlock(currentBlock: Block, nextBlock: Block): boolean {
   return nextBlock.previousblockhash === currentBlock.hash;
 }
 
+function isBlockChainBroken(currentBlock: Block, nextBlock: Block): boolean {
+  return nextBlock.height - currentBlock.height > 1;
+}
+
 function getBestChainedBlocks(blocks: Block[]): Block[] {
+  /*
+  Assumptions:
+   - The last block is always part of the best chianed block
+   - The JsonBlockchainClient would always return blocks sorted by height, in ascending order. No sorting is needed, improving the time complexity of this function
+  */
   if (blocks.length === 0) {
     return [];
   }
@@ -22,6 +31,7 @@ function getBestChainedBlocks(blocks: Block[]): Block[] {
   for (let i = 0; i < blocks.length - 1; i++) {
     const currentBlock = blocks[i];
     const nextBlock = blocks[i + 1];
+
     if (isLegitimateBlock(currentBlock, nextBlock)) {
       bestChain.push(currentBlock);
       currentHeight = nextBlock.height;
@@ -31,6 +41,10 @@ function getBestChainedBlocks(blocks: Block[]): Block[] {
     if (currentBlock.height === nextBlock.height) {
       quarantinedBlocks.push(currentBlock);
       continue;
+    }
+
+    if (isBlockChainBroken(currentBlock, nextBlock)) {
+      return bestChain;
     }
     bestChain.push(
       quarantinedBlocks.filter(
