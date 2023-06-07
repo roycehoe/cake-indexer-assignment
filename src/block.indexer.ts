@@ -6,7 +6,7 @@ import { Block, Tx } from './providers/blockchain/_abstract';
  * TODO: Index the blocks provided by the client and expose via RESTful endpoint
  */
 
-function isLegitimateBlock(currentBlock: Block, nextBlock: Block) {
+function isLegitimateBlock(currentBlock: Block, nextBlock: Block): boolean {
   return nextBlock.previousblockhash === currentBlock.hash;
 }
 
@@ -59,7 +59,7 @@ function getBlockHeightIndex(blocks: Block[]): Map<number, Block> {
   return blockHeightIndex;
 }
 
-function getTransactionAddressIndex(blocks: Block[]): Map<number, Tx> {
+function getTransactionAddressIndex(blocks: Block[]): Map<string, Tx[]> {
   const transactionAddressIndex = new Map();
   const transactions = blocks.flatMap((block) => block.tx);
 
@@ -85,7 +85,7 @@ function getTransactionAddressIndex(blocks: Block[]): Map<number, Tx> {
 export class BlockIndexer {
   blockHashIndex: Map<string, Block> = new Map();
   blockHeightIndex: Map<number, Block> = new Map();
-  transactionAddressIndex: Map<number, Tx> = new Map();
+  transactionAddressIndex: Map<string, Tx[]> = new Map();
   blocks: Block[] = [];
 
   constructor(private readonly blockchainClient: JsonBlockchainClient) {
@@ -128,5 +128,9 @@ export class BlockIndexer {
   getBlockTransactions(heightOrHash?: string): Tx[] {
     const block = this.findBlock(heightOrHash);
     return block.tx;
+  }
+
+  getAddressTransactions(address: string): Tx[] {
+    return this.transactionAddressIndex.get(address);
   }
 }

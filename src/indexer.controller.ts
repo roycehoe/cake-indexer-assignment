@@ -25,9 +25,7 @@ export class IndexerController {
   }
 
   @Get('blocks/:address/transactions')
-  getAddressTransactions(
-    @Param('address') heightOrHash: string,
-  ): Block[] | Block {
-    return this.blockIndexer.findBlock(heightOrHash);
+  getAddressTransactions(@Param('address') address: string): Tx[] {
+    return this.blockIndexer.getAddressTransactions(address);
   }
 }
