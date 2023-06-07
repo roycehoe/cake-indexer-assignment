@@ -16,7 +16,7 @@ export class IndexerController {
 
   @Get('blocks/:heightOrHash')
   findBlocks(@Param('heightOrHash') heightOrHash: string): Block[] | Block {
-    return this.blockIndexer.findBlocks(heightOrHash);
+    return this.blockIndexer.findBlock(heightOrHash);
   }
 
   @Get('blocks/:heightOrHash/transactions')
@@ -28,6 +28,6 @@ export class IndexerController {
   getAddressTransactions(
     @Param('address') heightOrHash: string,
   ): Block[] | Block {
-    return this.blockIndexer.findBlocks(heightOrHash);
+    return this.blockIndexer.findBlock(heightOrHash);
   }
 }

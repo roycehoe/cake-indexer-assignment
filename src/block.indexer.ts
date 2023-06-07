@@ -116,7 +116,7 @@ export class BlockIndexer {
     return this.blocks;
   }
 
-  findBlocks(heightOrHash?: string): Block {
+  findBlock(heightOrHash?: string): Block {
     if (this.isHeight(heightOrHash)) {
       const height = Number(heightOrHash);
       return this.blockHeightIndex.get(height);
@@ -126,7 +126,7 @@ export class BlockIndexer {
   }
 
   getBlockTransactions(heightOrHash?: string): Tx[] {
-    const block = this.findBlocks(heightOrHash);
+    const block = this.findBlock(heightOrHash);
     return block.tx;
   }
 }
