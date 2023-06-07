@@ -1,12 +1,12 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { BlockIndexer } from './block.indexer';
-import { Block } from './providers/blockchain/_abstract';
+import { Block, Tx } from './providers/blockchain/_abstract';
 
-@Controller('api/blocks')
+@Controller('api')
 export class IndexerController {
   constructor(private readonly blockIndexer: BlockIndexer) {}
 
-  @Get()
+  @Get('blocks')
   getBlocksQuery(@Query('maxHeight') maxHeight?: string): Block[] {
     if (!maxHeight) {
       return this.blockIndexer.getAllBlocks();
@@ -14,8 +14,20 @@ export class IndexerController {
     return this.blockIndexer.getBlocksBelowHeight(maxHeight);
   }
 
-  @Get(':heightOrHash')
+  @Get('blocks/:heightOrHash')
   findBlocks(@Param('heightOrHash') heightOrHash: string): Block[] | Block {
+    return this.blockIndexer.findBlocks(heightOrHash);
+  }
+
+  @Get('blocks/:heightOrHash/transactions')
+  getBlockTransactions(@Param('heightOrHash') heightOrHash: string): Tx[] {
+    return this.blockIndexer.getBlockTransactions(heightOrHash);
+  }
+
+  @Get('blocks/:address/transactions')
+  getAddressTransactions(
+    @Param('address') heightOrHash: string,
+  ): Block[] | Block {
     return this.blockIndexer.findBlocks(heightOrHash);
   }
 }

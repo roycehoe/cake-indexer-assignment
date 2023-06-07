@@ -116,12 +116,17 @@ export class BlockIndexer {
     return this.blocks;
   }
 
-  findBlocks(heightOrHash?: string): Block[] | Block {
+  findBlocks(heightOrHash?: string): Block {
     if (this.isHeight(heightOrHash)) {
       const height = Number(heightOrHash);
       return this.blockHeightIndex.get(height);
     }
 
     return this.blockHashIndex.get(heightOrHash);
+  }
+
+  getBlockTransactions(heightOrHash?: string): Tx[] {
+    const block = this.findBlocks(heightOrHash);
+    return block.tx;
   }
 }
