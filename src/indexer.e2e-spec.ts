@@ -69,6 +69,7 @@ describe('Block invalidation', () => {
 
   it('should not return transactions from invalidated blocks', async () => {
     // invalidating block 100 should invalidate all of its transactions
+    // Assumption: Invalidation means, the block is missing from the blockchain
     throw Error('todo');
   });
 });

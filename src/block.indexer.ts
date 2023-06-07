@@ -6,55 +6,83 @@ import { Block, Tx } from './providers/blockchain/_abstract';
  * TODO: Index the blocks provided by the client and expose via RESTful endpoint
  */
 
-function isLegitimateBlock(currentBlock: Block, nextBlock: Block): boolean {
-  return nextBlock.previousblockhash === currentBlock.hash;
+type BlockchainDAGGraph = { [hash: string]: Block[] };
+
+function getBlockchainDAGGraph(blocks: Block[]): BlockchainDAGGraph {
+  const blockchainGraph: BlockchainDAGGraph = {};
+
+  for (const block of blocks) {
+    if (!blockchainGraph[block.previousblockhash]) {
+      blockchainGraph[block.previousblockhash] = [];
+    }
+    blockchainGraph[block.previousblockhash].push(block);
+  }
+  return blockchainGraph;
 }
 
-function isBlockChainBroken(currentBlock: Block, nextBlock: Block): boolean {
-  return nextBlock.height - currentBlock.height > 1;
+function getBestChainFromStartingBlock(
+  graph: BlockchainDAGGraph,
+  visited: Set<string>,
+  startBlock: Block,
+): Block[] {
+  const stack = [{ block: startBlock, chain: [startBlock] }];
+  let bestChain = [];
+
+  while (stack.length > 0) {
+    const { block, chain } = stack.pop();
+    visited.add(block.hash);
+
+    if (chain.length > bestChain.length) {
+      bestChain = chain;
+    }
+
+    const children = graph[block.hash];
+    if (!children) {
+      continue;
+    }
+    for (const child of children) {
+      if (visited.has(child.hash)) {
+        continue;
+      }
+
+      stack.push({ block: child, chain: [...chain, child] });
+    }
+  }
+
+  return bestChain;
+}
+
+function containsGenesisBlock(currentChain: Block[], genesisBlock: Block) {
+  const filteredData = currentChain.filter(
+    (block) => block.height === genesisBlock.height,
+  );
+  return filteredData.length >= 0;
 }
 
 function getBestChainedBlocks(blocks: Block[]): Block[] {
-  /*
-  Assumptions:
-   - The last block returned from the JsonBlockchainClient is assumed to be part of the best blockchain
-   - The JsonBlockchainClient would always return blocks sorted by height, in ascending order. No sorting is needed, improving the time complexity of this function
-  */
-  if (blocks.length === 0) {
-    return [];
-  }
+  const graph = getBlockchainDAGGraph(blocks);
+  const visited = new Set() as Set<string>;
+  const genesisBlock = blocks[0];
+  let bestChain: Block[] = [];
 
-  const bestChain: Block[] = [];
-  const quarantinedBlocks: Block[] = [];
-  let currentHeight = 0;
-
-  for (let i = 0; i < blocks.length - 1; i++) {
-    const currentBlock = blocks[i];
-    const nextBlock = blocks[i + 1];
-
-    if (isLegitimateBlock(currentBlock, nextBlock)) {
-      bestChain.push(currentBlock);
-      currentHeight = nextBlock.height;
+  for (const block of blocks) {
+    // isUntraversed
+    if (visited.has(block.hash)) {
       continue;
     }
 
-    if (currentBlock.height === nextBlock.height) {
-      quarantinedBlocks.push(currentBlock);
+    const currentChain = getBestChainFromStartingBlock(graph, visited, block);
+    if (!containsGenesisBlock(currentChain, genesisBlock)) {
+      continue;
+    }
+    if (currentChain.length <= bestChain.length) {
       continue;
     }
 
-    if (isBlockChainBroken(currentBlock, nextBlock)) {
-      bestChain.push(currentBlock);
-      return bestChain;
-    }
-    bestChain.push(
-      quarantinedBlocks.filter(
-        (block) => nextBlock.previousblockhash === block.hash,
-      )[0],
-    );
+    bestChain = currentChain;
   }
+  console.log(bestChain);
 
-  bestChain.push(blocks.at(-1));
   return bestChain;
 }
 
