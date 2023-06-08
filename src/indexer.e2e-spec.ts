@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
 import {
   EXPECTED_VALID_BLOCKS,
+  EXPECTED_VALID_BLOCKS_WHEN_MISSING_BLOCK_OF_HEIGHT_100,
   EXPECTED_VALID_BLOCK_HASH_d744db74fb70ed42767ae028a129365fb4d7de54ba1b6575fb047490554f8a7b,
   EXPECTED_VALID_BLOCK_HEIGHT_0,
 } from '../test/expectedBlocks';
@@ -11,7 +12,10 @@ import {
   EXPECTED_TRANSACTIONS_ADDRESS_msER9bmJjyEemRpQoS8YYVL21VyZZrSgQ7,
   EXPECTED_TRANSACTIONS_HEIGHT_0,
 } from '../test/expectedTransactions';
+import { MOCK_API_RESPONSE_MISSING_BLOCK_HEIGHT_100 } from '../test/mockMissingBlocks';
 import { IndexerModule } from './indexer.module';
+import { JsonBlockchainClient } from './providers/blockchain/JsonBlockchainClient';
+import { Block } from './providers/blockchain/_abstract';
 
 describe('Indexer e2e', () => {
   let app: INestApplication;
@@ -32,7 +36,7 @@ describe('Indexer e2e', () => {
       .expect('Hello World!');
   });
 
-  describe('/api/blocks', () => {
+  describe('', () => {
     it('should return block by height', async () => {
       return request(app.getHttpServer())
         .get('/api/blocks/0')
@@ -89,9 +93,32 @@ describe('Indexer durability', () => {
 });
 
 describe('Block invalidation', () => {
+  let app: INestApplication;
+
+  beforeEach(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [IndexerModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks(); // Restore the original implementation after each test
+  });
+
   it('should not return blocks from invalidatedHeight onwards', async () => {
     // invalidating block 100 should invalidate block 100, 101, 102, ...
-    throw Error('todo');
+    const jsonBlockchainClient =
+      app.get<JsonBlockchainClient>(JsonBlockchainClient);
+    jest
+      .spyOn(jsonBlockchainClient, 'getAllBlocks')
+      .mockResolvedValue(MOCK_API_RESPONSE_MISSING_BLOCK_HEIGHT_100 as Block[]);
+    return request(app.getHttpServer())
+      .get('/api/blocks')
+      .expect(200)
+      .expect(EXPECTED_VALID_BLOCKS_WHEN_MISSING_BLOCK_OF_HEIGHT_100);
   });
 
   it('should not return transactions from invalidated blocks', async () => {
