@@ -27,10 +27,6 @@ export class JsonBlockchainClient
     return this.delay(() => this.blocks[this.blocks.length - 1].height + 1);
   }
 
-  async getAllBlocks(): Promise<Block[]> {
-    return this.delay(() => this.blocks);
-  }
-
   async getBlocksOfMaxHeight(height: number): Promise<Block[] | undefined> {
     return this.delay(() =>
       this.blocks.filter((block) => height <= block.height),

@@ -16,7 +16,7 @@ export class IndexerController {
     @Query('maxHeight') maxHeight?: string,
   ): Promise<Block[]> {
     if (!maxHeight) {
-      const result = await this.blockIndexer.getAllBlocks();
+      const result = await this.blockIndexer.getAllBestChainedBlocks();
       return result;
     }
     const result = await this.blockIndexer.getBlocksBelowHeight(maxHeight);

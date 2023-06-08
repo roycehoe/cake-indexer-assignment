@@ -102,33 +102,46 @@ export class BlockIndexer {
       return cachedData;
     }
     const result = await callback();
-    await this.cacheManager.set(key, result);
+    await this.cacheManager.set(key, result, 0);
     return result;
   }
 
-  async getAllBlocks() {
-    let cachedData = (await this.cacheManager.get('allBlocks')) as
-      | Block[]
-      | undefined;
+  private async getTransactionAddressIndex(
+    blocks: Block[],
+  ): Promise<Map<string, Tx[]>> {
+    const cachedData = (await this.cacheManager.get(
+      'transactionAddressIndex',
+    )) as Map<string, Tx[]>;
+    const transactions = blocks.flatMap((block) => block.tx);
 
-    if (cachedData === undefined) {
-      cachedData = [];
-      await this.cacheManager.set('allBlocks', cachedData);
-    }
-
-    let heightToResume =
-      cachedData.length === 0 ? 0 : cachedData[cachedData.length].height + 1;
-    while (true) {
-      console.log(heightToResume);
-      const blockAtHeight = await this.blockchainClient.getBlocksAtHeight(
-        heightToResume,
-      );
-      if (blockAtHeight.length === 0) {
-        break;
+    for (const transaction of transactions) {
+      for (const vout of transaction.vout) {
+        if (!vout.scriptPubKey.addresses) {
+          continue;
+        }
+        for (const address of vout.scriptPubKey.addresses) {
+          if (!cachedData.has(address)) {
+            cachedData.set(address, []);
+          }
+          cachedData.get(address).push(transaction);
+        }
       }
-      cachedData = [...cachedData, ...blockAtHeight];
-      await this.cacheManager.set('allBlocks', cachedData); // Update the cache each time a new block is fetched
-      heightToResume += 1;
+    }
+    return cachedData;
+  }
+
+  private async getBlockHeightIndex(
+    blocks: Block[],
+  ): Promise<Map<number, Block>> {
+    const cachedData = (await this.cacheManager.get('blockHashIndex')) as Map<
+      number,
+      Block
+    >;
+    for (const block of blocks) {
+      if (cachedData.get(block.height)) {
+        continue;
+      }
+      cachedData.set(block.height, block);
     }
     return cachedData;
   }
@@ -136,50 +149,43 @@ export class BlockIndexer {
   private async getBlockHashIndex(
     blocks: Block[],
   ): Promise<Map<string, Block>> {
-    return this.withCacheing('blockHashIndex', async () => {
-      const blockHashIndex = new Map();
-      for (const block of blocks) {
-        blockHashIndex.set(block.hash, block);
+    const cachedData = (await this.cacheManager.get('blockHashIndex')) as Map<
+      string,
+      Block
+    >;
+    for (const block of blocks) {
+      if (cachedData.get(block.hash)) {
+        continue;
       }
-      return blockHashIndex;
-    });
+      cachedData.set(block.hash, block);
+    }
+    return cachedData;
   }
 
-  private async getBlockHeightIndex(
-    blocks: Block[],
-  ): Promise<Map<number, Block>> {
-    return this.withCacheing('blockHeightIndex', async () => {
-      const blockHeightIndex = new Map();
-      for (const block of blocks) {
-        blockHeightIndex.set(block.height, block);
+  async getAllBlocks() {
+    let cachedData = (await this.cacheManager.get('allBlocks')) as Block[];
+
+    let heightToResume =
+      cachedData.length === 0
+        ? 0
+        : cachedData[cachedData.length - 1].height + 1;
+    while (true) {
+      const blockAtHeight = await this.blockchainClient.getBlocksAtHeight(
+        heightToResume,
+      );
+      if (blockAtHeight.length === 0) {
+        break;
       }
-      return blockHeightIndex;
-    });
+      cachedData = [...cachedData, ...blockAtHeight];
+      await this.cacheManager.set('allBlocks', cachedData, 0); // Update the cache each time a new block is fetched
+      heightToResume += 1;
+    }
+    return cachedData;
   }
 
-  private async getTransactionAddressIndex(
-    blocks: Block[],
-  ): Promise<Map<string, Tx[]>> {
-    return this.withCacheing('transactionAddressIndex', async () => {
-      const transactionAddressIndex = new Map();
-      const transactions = blocks.flatMap((block) => block.tx);
-
-      for (const transaction of transactions) {
-        for (const vout of transaction.vout) {
-          if (!vout.scriptPubKey.addresses) {
-            continue;
-          }
-          for (const address of vout.scriptPubKey.addresses) {
-            if (!transactionAddressIndex.has(address)) {
-              transactionAddressIndex.set(address, []);
-            }
-
-            transactionAddressIndex.get(address).push(transaction);
-          }
-        }
-      }
-      return transactionAddressIndex;
-    });
+  async getAllBestChainedBlocks() {
+    const allBlocks = await this.getAllBlocks();
+    return getBestChainedBlocks(allBlocks);
   }
 
   async getBlocksBelowHeight(height: string): Promise<Block[]> {
@@ -223,5 +229,26 @@ export class BlockIndexer {
     );
 
     return transactionAddressIndex.get(address);
+  }
+
+  async onApplicationBootstrap(): Promise<void> {
+    const allBlocksCache = await this.cacheManager.get('allBlocks');
+    if (allBlocksCache === undefined) {
+      await this.cacheManager.set('allBlocks', [], 0);
+    }
+    const blockHeightIndex = await this.cacheManager.get('blockHeightIndex');
+    if (blockHeightIndex === undefined) {
+      await this.cacheManager.set('blockHeightIndex', new Map(), 0);
+    }
+    const blockHashIndex = await this.cacheManager.get('blockHashIndex');
+    if (blockHashIndex === undefined) {
+      await this.cacheManager.set('blockHashIndex', new Map(), 0);
+    }
+    const transactionAddressIndex = await this.cacheManager.get(
+      'transactionAddressIndex',
+    );
+    if (transactionAddressIndex === undefined) {
+      await this.cacheManager.set('transactionAddressIndex', new Map(), 0);
+    }
   }
 }

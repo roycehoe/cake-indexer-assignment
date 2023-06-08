@@ -13,8 +13,8 @@ import {
 } from '../test/expectedTransactions';
 import { MOCK_API_RESPONSE_MISSING_BLOCK_HEIGHT_100 } from '../test/mockMissingBlocks';
 import { MOCK_API_RESPONSE_MISSING_TXID_9fb9c46b1d12dae8a4a35558f7ef4b047df3b444b1ead61d334e4f187f5f58b7 } from '../test/mockMissingTransactions';
+import { BlockIndexer } from './block.indexer';
 import { IndexerModule } from './indexer.module';
-import { JsonBlockchainClient } from './providers/blockchain/JsonBlockchainClient';
 import { Block } from './providers/blockchain/_abstract';
 
 describe('Indexer e2e', () => {
@@ -110,10 +110,9 @@ describe('Block invalidation', () => {
 
   it('should not return blocks from invalidatedHeight onwards', async () => {
     // invalidating block 100 should invalidate block 100, 101, 102, ...
-    const jsonBlockchainClient =
-      app.get<JsonBlockchainClient>(JsonBlockchainClient);
+    const blockIndexer = app.get<BlockIndexer>(BlockIndexer);
     jest
-      .spyOn(jsonBlockchainClient, 'getAllBlocks')
+      .spyOn(blockIndexer, 'getAllBlocks')
       .mockResolvedValue(MOCK_API_RESPONSE_MISSING_BLOCK_HEIGHT_100 as Block[]);
     return request(app.getHttpServer())
       .get('/api/blocks?maxHeight=100')
@@ -124,10 +123,9 @@ describe('Block invalidation', () => {
   it('should not return transactions from invalidated blocks', async () => {
     // invalidating block 100 should invalidate all of its transactions
     // Assumption: Invalidation means, the block is missing from the blockchain
-    const jsonBlockchainClient =
-      app.get<JsonBlockchainClient>(JsonBlockchainClient);
+    const blockIndexer = app.get<BlockIndexer>(BlockIndexer);
     jest
-      .spyOn(jsonBlockchainClient, 'getAllBlocks')
+      .spyOn(blockIndexer, 'getAllBlocks')
       .mockResolvedValue(
         MOCK_API_RESPONSE_MISSING_TXID_9fb9c46b1d12dae8a4a35558f7ef4b047df3b444b1ead61d334e4f187f5f58b7 as Block[],
       );
