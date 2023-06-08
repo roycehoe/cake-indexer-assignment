@@ -1,6 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
+import {
+  EXPECTED_VALID_BLOCKS,
+  EXPECTED_VALID_BLOCK_HEIGHT_0,
+} from '../test/expectedBlocks';
 import { IndexerModule } from './indexer.module';
 
 describe('Indexer e2e', () => {
@@ -24,7 +28,10 @@ describe('Indexer e2e', () => {
 
   describe('/api/blocks', () => {
     it('should return block by height', async () => {
-      throw Error('todo');
+      return request(app.getHttpServer())
+        .get('/api/blocks/0')
+        .expect(200)
+        .expect(EXPECTED_VALID_BLOCK_HEIGHT_0);
     });
 
     it('should return block by hash', async () => {
@@ -32,11 +39,10 @@ describe('Indexer e2e', () => {
     });
 
     it('should list blocks', async () => {
-      // return request(app.getHttpServer())
-      //   .get('/api/blocks')
-      //   .expect(200)
-      //   .expect({});
-      throw Error('todo');
+      return request(app.getHttpServer())
+        .get('/api/blocks')
+        .expect(200)
+        .expect(EXPECTED_VALID_BLOCKS);
     });
 
     describe('/api/blocks/{height}/transactions', () => {

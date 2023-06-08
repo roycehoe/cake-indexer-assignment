@@ -23038,7 +23038,7 @@ export const EXPECTED_VALID_BLOCKS = [
   },
 ];
 
-export const EXPECTED_VALID_BLOCK_INDEX_0 = {
+export const EXPECTED_VALID_BLOCK_HEIGHT_0 = {
   hash: 'd744db74fb70ed42767ae028a129365fb4d7de54ba1b6575fb047490554f8a7b',
   confirmations: 202,
   strippedsize: 1424,

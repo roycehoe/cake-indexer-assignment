@@ -12,25 +12,38 @@ export class IndexerController {
   }
 
   @Get('api/blocks')
-  getBlocksQuery(@Query('maxHeight') maxHeight?: string): Block[] {
+  async getBlocksQuery(
+    @Query('maxHeight') maxHeight?: string,
+  ): Promise<Block[]> {
     if (!maxHeight) {
-      return this.blockIndexer.getAllBlocks();
+      const result = await this.blockIndexer.getAllBlocks();
+      return result;
     }
-    return this.blockIndexer.getBlocksBelowHeight(maxHeight);
+    const result = await this.blockIndexer.getBlocksBelowHeight(maxHeight);
+    return result;
   }
 
   @Get('api/blocks/:heightOrHash')
-  findBlocks(@Param('heightOrHash') heightOrHash: string): Block[] | Block {
-    return this.blockIndexer.findBlock(heightOrHash);
+  async findBlocks(
+    @Param('heightOrHash') heightOrHash: string,
+  ): Promise<Block[] | Block> {
+    const result = await this.blockIndexer.findBlock(heightOrHash);
+    return result;
   }
 
   @Get('api/blocks/:heightOrHash/transactions')
-  getBlockTransactions(@Param('heightOrHash') heightOrHash: string): Tx[] {
-    return this.blockIndexer.getBlockTransactions(heightOrHash);
+  async getBlockTransactions(
+    @Param('heightOrHash') heightOrHash: string,
+  ): Promise<Tx[]> {
+    const result = await this.blockIndexer.getBlockTransactions(heightOrHash);
+    return result;
   }
 
   @Get('api/blocks/:address/transactions')
-  getAddressTransactions(@Param('address') address: string): Tx[] {
-    return this.blockIndexer.getAddressTransactions(address);
+  async getAddressTransactions(
+    @Param('address') address: string,
+  ): Promise<Tx[]> {
+    const result = await this.blockIndexer.getAddressTransactions(address);
+    return result;
   }
 }
