@@ -106,6 +106,33 @@ export class BlockIndexer {
     return result;
   }
 
+  async getAllBlocks() {
+    let cachedData = (await this.cacheManager.get('allBlocks')) as
+      | Block[]
+      | undefined;
+
+    if (cachedData === undefined) {
+      cachedData = [];
+      await this.cacheManager.set('allBlocks', cachedData);
+    }
+
+    let heightToResume =
+      cachedData.length === 0 ? 0 : cachedData[cachedData.length].height + 1;
+    while (true) {
+      console.log(heightToResume);
+      const blockAtHeight = await this.blockchainClient.getBlocksAtHeight(
+        heightToResume,
+      );
+      if (blockAtHeight.length === 0) {
+        break;
+      }
+      cachedData = [...cachedData, ...blockAtHeight];
+      await this.cacheManager.set('allBlocks', cachedData); // Update the cache each time a new block is fetched
+      heightToResume += 1;
+    }
+    return cachedData;
+  }
+
   private async getBlockHashIndex(
     blocks: Block[],
   ): Promise<Map<string, Block>> {
@@ -156,7 +183,7 @@ export class BlockIndexer {
   }
 
   async getBlocksBelowHeight(height: string): Promise<Block[]> {
-    const allBlocks = await this.blockchainClient.getAllBlocks();
+    const allBlocks = await this.getAllBlocks();
     const bestChainedBlocks = getBestChainedBlocks(allBlocks);
 
     const blocksBelowHeight = bestChainedBlocks.filter(
@@ -169,13 +196,8 @@ export class BlockIndexer {
     return !isNaN(Number(heightOrHash));
   }
 
-  async getAllBlocks() {
-    const allBlocks = await this.blockchainClient.getAllBlocks();
-    return getBestChainedBlocks(allBlocks);
-  }
-
   async findBlock(heightOrHash?: string): Promise<Block> {
-    const allBlocks = await this.blockchainClient.getAllBlocks();
+    const allBlocks = await this.getAllBlocks();
     const bestChainedBlocks = getBestChainedBlocks(allBlocks);
     const blockHeightIndex = await this.getBlockHeightIndex(bestChainedBlocks);
 
@@ -194,7 +216,7 @@ export class BlockIndexer {
   }
 
   async getAddressTransactions(address: string): Promise<Tx[]> {
-    const allBlocks = await this.blockchainClient.getAllBlocks();
+    const allBlocks = await this.getAllBlocks();
     const bestChainedBlocks = getBestChainedBlocks(allBlocks);
     const transactionAddressIndex = await this.getTransactionAddressIndex(
       bestChainedBlocks,

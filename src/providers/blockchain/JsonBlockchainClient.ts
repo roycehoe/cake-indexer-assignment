@@ -71,7 +71,8 @@ export class JsonBlockchainClient
       // Simulate non-deterministic response time
       const timeout = setTimeout(() => {
         resolve(callback());
-      }, randIntInclusive(50, 500)); // ms
+        // }, randIntInclusive(50, 500)); // ms
+      }, randIntInclusive(5, 5)); // ms
 
       // Register timeout for clean-up
       this.timeouts.push(timeout);
