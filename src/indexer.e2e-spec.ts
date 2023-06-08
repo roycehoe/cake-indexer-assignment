@@ -3,8 +3,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
 import {
   EXPECTED_VALID_BLOCKS,
+  EXPECTED_VALID_BLOCK_HASH_d744db74fb70ed42767ae028a129365fb4d7de54ba1b6575fb047490554f8a7b,
   EXPECTED_VALID_BLOCK_HEIGHT_0,
 } from '../test/expectedBlocks';
+
+import {
+  EXPECTED_TRANSACTIONS_ADDRESS_msER9bmJjyEemRpQoS8YYVL21VyZZrSgQ7,
+  EXPECTED_TRANSACTIONS_HEIGHT_0,
+} from '../test/expectedTransactions';
 import { IndexerModule } from './indexer.module';
 
 describe('Indexer e2e', () => {
@@ -35,7 +41,14 @@ describe('Indexer e2e', () => {
     });
 
     it('should return block by hash', async () => {
-      throw Error('todo');
+      return request(app.getHttpServer())
+        .get(
+          '/api/blocks/d744db74fb70ed42767ae028a129365fb4d7de54ba1b6575fb047490554f8a7b',
+        )
+        .expect(200)
+        .expect(
+          EXPECTED_VALID_BLOCK_HASH_d744db74fb70ed42767ae028a129365fb4d7de54ba1b6575fb047490554f8a7b,
+        );
     });
 
     it('should list blocks', async () => {
@@ -47,14 +60,22 @@ describe('Indexer e2e', () => {
 
     describe('/api/blocks/{height}/transactions', () => {
       it('should list transactions for a given block', async () => {
-        throw Error('todo');
+        return request(app.getHttpServer())
+          .get('/api/blocks/0/transactions')
+          .expect(200)
+          .expect(EXPECTED_TRANSACTIONS_HEIGHT_0);
       });
     });
   });
 
   describe('/api/addresses/{address}/transactions', () => {
     it('should list transactions for a given address', async () => {
-      throw Error('todo');
+      return request(app.getHttpServer())
+        .get('/api/addresses/msER9bmJjyEemRpQoS8YYVL21VyZZrSgQ7/transactions')
+        .expect(200)
+        .expect(
+          EXPECTED_TRANSACTIONS_ADDRESS_msER9bmJjyEemRpQoS8YYVL21VyZZrSgQ7,
+        );
     });
   });
 });

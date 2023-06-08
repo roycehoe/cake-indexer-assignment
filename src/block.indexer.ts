@@ -81,7 +81,6 @@ function getBestChainedBlocks(blocks: Block[]): Block[] {
 
     bestChain = currentChain;
   }
-  console.log(bestChain);
 
   return bestChain;
 }
@@ -139,7 +138,7 @@ export class BlockIndexer {
   }
 
   isHeight(heightOrHash: number | string) {
-    return !!Number(heightOrHash);
+    return !isNaN(Number(heightOrHash));
   }
 
   async getAllBlocks() {

@@ -39,7 +39,7 @@ export class IndexerController {
     return result;
   }
 
-  @Get('api/blocks/:address/transactions')
+  @Get('api/addresses/:address/transactions')
   async getAddressTransactions(
     @Param('address') address: string,
   ): Promise<Tx[]> {
