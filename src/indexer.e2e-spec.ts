@@ -11,7 +11,10 @@ import {
   EXPECTED_TRANSACTIONS_ADDRESS_msER9bmJjyEemRpQoS8YYVL21VyZZrSgQ7,
   EXPECTED_TRANSACTIONS_HEIGHT_0,
 } from '../test/expectedTransactions';
-import { MOCK_API_RESPONSE_MISSING_BLOCK_HEIGHT_100 } from '../test/mockMissingBlocks';
+import {
+  MOCK_API_RESPONSE_MISSING_BLOCK_HEIGHT_100,
+  MOCK_INDEXER_SHUTDOWN_AT_HEIGHT_30,
+} from '../test/mockMissingBlocks';
 import { MOCK_API_RESPONSE_MISSING_TXID_9fb9c46b1d12dae8a4a35558f7ef4b047df3b444b1ead61d334e4f187f5f58b7 } from '../test/mockMissingTransactions';
 import { BlockIndexer } from './block.indexer';
 import { IndexerModule } from './indexer.module';
@@ -85,11 +88,36 @@ describe('Indexer e2e', () => {
 });
 
 describe('Indexer durability', () => {
-  it('should not lose indexed state if it goes down while indexing', () => {
-    // More specifically, killing the service while it's indexing then bringing it back up again
-    // should not result in re-indexing of the already indexed blocks
+  let app: INestApplication;
+
+  beforeEach(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [IndexerModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks(); // Restore the original implementation after each test
+  });
+  it('should not lose indexed state if it goes down while indexing', async () => {
+    const blockIndexer = app.get<BlockIndexer>(BlockIndexer);
+    jest
+      .spyOn(blockIndexer, 'getAllBlocks')
+      .mockResolvedValue(MOCK_INDEXER_SHUTDOWN_AT_HEIGHT_30 as Block[]);
+
+    let test = await blockIndexer.findBlock('1');
+    console.log(test);
+    test = await blockIndexer.findBlock('50');
+    console.log(test);
+
     throw Error('todo');
   });
+
+  // More specifically, killing the service while it's indexing then bringing it back up again
+  // should not result in re-indexing of the already indexed blocks
 });
 
 describe('Block invalidation', () => {

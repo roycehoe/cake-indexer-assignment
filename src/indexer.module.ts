@@ -2,6 +2,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { join, resolve } from 'path';
 import { BlockIndexer } from './block.indexer';
+import { CacheService } from './cache.service';
 import { IndexerController } from './indexer.controller';
 import {
   JSON_BLOCKS,
@@ -13,6 +14,7 @@ import {
   controllers: [IndexerController],
   providers: [
     BlockIndexer,
+    CacheService,
 
     // To keep this assignment simple, we'll provide the JsonBlockchainClient
     // and the path to the 200.json here.

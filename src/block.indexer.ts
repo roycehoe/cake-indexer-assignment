@@ -2,6 +2,7 @@ import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { JsonBlockchainClient } from './providers/blockchain/JsonBlockchainClient';
 import { Block, Tx } from './providers/blockchain/_abstract';
+import { CacheService } from './cache.service';
 
 /**
  * TODO: Index the blocks provided by the client and expose via RESTful endpoint
@@ -90,26 +91,13 @@ function getBestChainedBlocks(blocks: Block[]): Block[] {
 export class BlockIndexer {
   constructor(
     private readonly blockchainClient: JsonBlockchainClient,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    private cacheService: CacheService,
   ) {}
-
-  private async withCacheing(
-    key: string,
-    callback: () => Promise<any>,
-  ): Promise<any> {
-    const cachedData = await this.cacheManager.get(key);
-    if (cachedData) {
-      return cachedData;
-    }
-    const result = await callback();
-    await this.cacheManager.set(key, result, 0);
-    return result;
-  }
 
   private async getTransactionAddressIndex(
     blocks: Block[],
   ): Promise<Map<string, Tx[]>> {
-    const cachedData = (await this.cacheManager.get(
+    const cachedData = (await this.cacheService.get(
       'transactionAddressIndex',
     )) as Map<string, Tx[]>;
     const transactions = blocks.flatMap((block) => block.tx);
@@ -133,7 +121,7 @@ export class BlockIndexer {
   private async getBlockHeightIndex(
     blocks: Block[],
   ): Promise<Map<number, Block>> {
-    const cachedData = (await this.cacheManager.get('blockHashIndex')) as Map<
+    const cachedData = (await this.cacheService.get('blockHashIndex')) as Map<
       number,
       Block
     >;
@@ -149,7 +137,7 @@ export class BlockIndexer {
   private async getBlockHashIndex(
     blocks: Block[],
   ): Promise<Map<string, Block>> {
-    const cachedData = (await this.cacheManager.get('blockHashIndex')) as Map<
+    const cachedData = (await this.cacheService.get('blockHashIndex')) as Map<
       string,
       Block
     >;
@@ -163,7 +151,7 @@ export class BlockIndexer {
   }
 
   async getAllBlocks() {
-    let cachedData = (await this.cacheManager.get('allBlocks')) as Block[];
+    let cachedData = (await this.cacheService.get('allBlocks')) as Block[];
 
     let heightToResume =
       cachedData.length === 0
@@ -177,7 +165,7 @@ export class BlockIndexer {
         break;
       }
       cachedData = [...cachedData, ...blockAtHeight];
-      await this.cacheManager.set('allBlocks', cachedData, 0); // Update the cache each time a new block is fetched
+      await this.cacheService.set('allBlocks', cachedData, 0); // Update the cache each time a new block is fetched
       heightToResume += 1;
     }
     return cachedData;
@@ -232,23 +220,23 @@ export class BlockIndexer {
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    const allBlocksCache = await this.cacheManager.get('allBlocks');
+    const allBlocksCache = await this.cacheService.get('allBlocks');
     if (allBlocksCache === undefined) {
-      await this.cacheManager.set('allBlocks', [], 0);
+      await this.cacheService.set('allBlocks', [], 0);
     }
-    const blockHeightIndex = await this.cacheManager.get('blockHeightIndex');
+    const blockHeightIndex = await this.cacheService.get('blockHeightIndex');
     if (blockHeightIndex === undefined) {
-      await this.cacheManager.set('blockHeightIndex', new Map(), 0);
+      await this.cacheService.set('blockHeightIndex', new Map(), 0);
     }
-    const blockHashIndex = await this.cacheManager.get('blockHashIndex');
+    const blockHashIndex = await this.cacheService.get('blockHashIndex');
     if (blockHashIndex === undefined) {
-      await this.cacheManager.set('blockHashIndex', new Map(), 0);
+      await this.cacheService.set('blockHashIndex', new Map(), 0);
     }
-    const transactionAddressIndex = await this.cacheManager.get(
+    const transactionAddressIndex = await this.cacheService.get(
       'transactionAddressIndex',
     );
     if (transactionAddressIndex === undefined) {
-      await this.cacheManager.set('transactionAddressIndex', new Map(), 0);
+      await this.cacheService.set('transactionAddressIndex', new Map(), 0);
     }
   }
 }
