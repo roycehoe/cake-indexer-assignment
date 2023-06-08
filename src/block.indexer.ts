@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
+import { Cache } from 'cache-manager';
 import { JsonBlockchainClient } from './providers/blockchain/JsonBlockchainClient';
 import { Block, Tx } from './providers/blockchain/_abstract';
 
@@ -85,47 +86,74 @@ function getBestChainedBlocks(blocks: Block[]): Block[] {
   return bestChain;
 }
 
-function getBlockHashIndex(blocks: Block[]): Map<string, Block> {
-  const blockHashIndex = new Map();
-  for (const block of blocks) {
-    blockHashIndex.set(block.hash, block);
-  }
-  return blockHashIndex;
-}
-
-function getBlockHeightIndex(blocks: Block[]): Map<number, Block> {
-  const blockHeightIndex = new Map();
-  for (const block of blocks) {
-    blockHeightIndex.set(block.height, block);
-  }
-  return blockHeightIndex;
-}
-
-function getTransactionAddressIndex(blocks: Block[]): Map<string, Tx[]> {
-  const transactionAddressIndex = new Map();
-  const transactions = blocks.flatMap((block) => block.tx);
-
-  for (const transaction of transactions) {
-    for (const vout of transaction.vout) {
-      if (!vout.scriptPubKey.addresses) {
-        continue;
-      }
-      for (const address of vout.scriptPubKey.addresses) {
-        if (!transactionAddressIndex.has(address)) {
-          transactionAddressIndex.set(address, []);
-        }
-
-        transactionAddressIndex.get(address).push(transaction);
-      }
-    }
-  }
-
-  return transactionAddressIndex;
-}
-
 @Injectable()
 export class BlockIndexer {
-  constructor(private readonly blockchainClient: JsonBlockchainClient) {}
+  constructor(
+    private readonly blockchainClient: JsonBlockchainClient,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
+
+  private async withCacheing(
+    key: string,
+    callback: () => Promise<any>,
+  ): Promise<any> {
+    const cachedData = await this.cacheManager.get(key);
+    if (cachedData) {
+      return cachedData;
+    }
+    const result = await callback();
+    await this.cacheManager.set(key, result);
+    return result;
+  }
+
+  private async getBlockHashIndex(
+    blocks: Block[],
+  ): Promise<Map<string, Block>> {
+    return this.withCacheing('blockHashIndex', async () => {
+      const blockHashIndex = new Map();
+      for (const block of blocks) {
+        blockHashIndex.set(block.hash, block);
+      }
+      return blockHashIndex;
+    });
+  }
+
+  private async getBlockHeightIndex(
+    blocks: Block[],
+  ): Promise<Map<number, Block>> {
+    return this.withCacheing('blockHeightIndex', async () => {
+      const blockHeightIndex = new Map();
+      for (const block of blocks) {
+        blockHeightIndex.set(block.height, block);
+      }
+      return blockHeightIndex;
+    });
+  }
+
+  private async getTransactionAddressIndex(
+    blocks: Block[],
+  ): Promise<Map<string, Tx[]>> {
+    return this.withCacheing('transactionAddressIndex', async () => {
+      const transactionAddressIndex = new Map();
+      const transactions = blocks.flatMap((block) => block.tx);
+
+      for (const transaction of transactions) {
+        for (const vout of transaction.vout) {
+          if (!vout.scriptPubKey.addresses) {
+            continue;
+          }
+          for (const address of vout.scriptPubKey.addresses) {
+            if (!transactionAddressIndex.has(address)) {
+              transactionAddressIndex.set(address, []);
+            }
+
+            transactionAddressIndex.get(address).push(transaction);
+          }
+        }
+      }
+      return transactionAddressIndex;
+    });
+  }
 
   async getBlocksBelowHeight(height: string): Promise<Block[]> {
     const allBlocks = await this.blockchainClient.getAllBlocks();
@@ -149,14 +177,14 @@ export class BlockIndexer {
   async findBlock(heightOrHash?: string): Promise<Block> {
     const allBlocks = await this.blockchainClient.getAllBlocks();
     const bestChainedBlocks = getBestChainedBlocks(allBlocks);
-    const blockHeightIndex = getBlockHeightIndex(bestChainedBlocks);
+    const blockHeightIndex = await this.getBlockHeightIndex(bestChainedBlocks);
 
     if (this.isHeight(heightOrHash)) {
       const height = Number(heightOrHash);
       return blockHeightIndex.get(height);
     }
 
-    const blockHashIndex = getBlockHashIndex(bestChainedBlocks);
+    const blockHashIndex = await this.getBlockHashIndex(bestChainedBlocks);
     return blockHashIndex.get(heightOrHash);
   }
 
@@ -168,8 +196,9 @@ export class BlockIndexer {
   async getAddressTransactions(address: string): Promise<Tx[]> {
     const allBlocks = await this.blockchainClient.getAllBlocks();
     const bestChainedBlocks = getBestChainedBlocks(allBlocks);
-    const transactionAddressIndex =
-      getTransactionAddressIndex(bestChainedBlocks);
+    const transactionAddressIndex = await this.getTransactionAddressIndex(
+      bestChainedBlocks,
+    );
 
     return transactionAddressIndex.get(address);
   }

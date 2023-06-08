@@ -1,14 +1,15 @@
+import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
-import { resolve, join } from 'path';
+import { join, resolve } from 'path';
+import { BlockIndexer } from './block.indexer';
 import { IndexerController } from './indexer.controller';
 import {
   JSON_BLOCKS,
   JsonBlockchainClient,
 } from './providers/blockchain/JsonBlockchainClient';
-import { BlockIndexer } from './block.indexer';
 
 @Module({
-  imports: [],
+  imports: [CacheModule.register()],
   controllers: [IndexerController],
   providers: [
     BlockIndexer,
