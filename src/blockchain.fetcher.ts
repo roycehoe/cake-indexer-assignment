@@ -10,7 +10,7 @@ export class BlockchainFetcher {
     private cacheService: CacheService,
   ) {}
 
-  private async getHeightToResume(): Promise<number> {
+  async getHeightToResume(): Promise<number> {
     const cachedData = (await this.cacheService.get('allBlocks')) as Block[];
 
     if (cachedData.length === 0) {
