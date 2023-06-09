@@ -2,6 +2,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { join, resolve } from 'path';
 import { BlockIndexer } from './block.indexer';
+import { BlockchainBuilder } from './blockchain.builder';
 import { CacheService } from './cache.service';
 import { IndexerController } from './indexer.controller';
 import {
@@ -15,6 +16,7 @@ import {
   providers: [
     BlockIndexer,
     CacheService,
+    BlockchainBuilder,
 
     // To keep this assignment simple, we'll provide the JsonBlockchainClient
     // and the path to the 200.json here.

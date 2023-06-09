@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { BlockchainBuilder } from './blockchain.builder';
 import { CacheService } from './cache.service';
 import { JsonBlockchainClient } from './providers/blockchain/JsonBlockchainClient';
 import { Block, Tx } from './providers/blockchain/_abstract';
@@ -7,89 +8,11 @@ import { Block, Tx } from './providers/blockchain/_abstract';
  * TODO: Index the blocks provided by the client and expose via RESTful endpoint
  */
 
-type BlockchainDAGGraph = { [hash: string]: Block[] };
-
-function getBlockchainDAGGraph(blocks: Block[]): BlockchainDAGGraph {
-  const blockchainGraph: BlockchainDAGGraph = {};
-
-  for (const block of blocks) {
-    if (!blockchainGraph[block.previousblockhash]) {
-      blockchainGraph[block.previousblockhash] = [];
-    }
-    blockchainGraph[block.previousblockhash].push(block);
-  }
-  return blockchainGraph;
-}
-
-function getBestChainFromStartingBlock(
-  graph: BlockchainDAGGraph,
-  visited: Set<string>,
-  startBlock: Block,
-): Block[] {
-  const stack = [{ block: startBlock, chain: [startBlock] }];
-  let bestChain = [];
-
-  while (stack.length > 0) {
-    const { block, chain } = stack.pop();
-    visited.add(block.hash);
-
-    if (chain.length > bestChain.length) {
-      bestChain = chain;
-    }
-
-    const children = graph[block.hash];
-    if (!children) {
-      continue;
-    }
-    for (const child of children) {
-      if (visited.has(child.hash)) {
-        continue;
-      }
-
-      stack.push({ block: child, chain: [...chain, child] });
-    }
-  }
-
-  return bestChain;
-}
-
-function containsGenesisBlock(currentChain: Block[], genesisBlock: Block) {
-  const filteredData = currentChain.filter(
-    (block) => block.height === genesisBlock.height,
-  );
-  return filteredData.length >= 0;
-}
-
-function getBestChainedBlocks(blocks: Block[]): Block[] {
-  const graph = getBlockchainDAGGraph(blocks);
-  const visited = new Set() as Set<string>;
-  const genesisBlock = blocks[0];
-  let bestChain: Block[] = [];
-
-  for (const block of blocks) {
-    // isUntraversed
-    if (visited.has(block.hash)) {
-      continue;
-    }
-
-    const currentChain = getBestChainFromStartingBlock(graph, visited, block);
-    if (!containsGenesisBlock(currentChain, genesisBlock)) {
-      continue;
-    }
-    if (currentChain.length <= bestChain.length) {
-      continue;
-    }
-
-    bestChain = currentChain;
-  }
-
-  return bestChain;
-}
-
 @Injectable()
 export class BlockIndexer {
   constructor(
     private readonly blockchainClient: JsonBlockchainClient,
+    private readonly blockchainBuilder: BlockchainBuilder,
     private cacheService: CacheService,
   ) {}
 
@@ -172,12 +95,13 @@ export class BlockIndexer {
 
   async getAllBestChainedBlocks() {
     const allBlocks = await this.getAllBlocks();
-    return getBestChainedBlocks(allBlocks);
+    return this.blockchainBuilder.getBestChainedBlocks(allBlocks);
   }
 
   async getBlocksBelowHeight(height: string): Promise<Block[]> {
     const allBlocks = await this.getAllBlocks();
-    const bestChainedBlocks = getBestChainedBlocks(allBlocks);
+    const bestChainedBlocks =
+      this.blockchainBuilder.getBestChainedBlocks(allBlocks);
 
     const blocksBelowHeight = bestChainedBlocks.filter(
       (block) => Number(height) <= block.height,
@@ -191,7 +115,8 @@ export class BlockIndexer {
 
   async findBlock(heightOrHash?: string): Promise<Block> {
     const allBlocks = await this.getAllBlocks();
-    const bestChainedBlocks = getBestChainedBlocks(allBlocks);
+    const bestChainedBlocks =
+      this.blockchainBuilder.getBestChainedBlocks(allBlocks);
     const blockHeightIndex = await this.getBlockHeightIndex(bestChainedBlocks);
 
     if (this.isHeight(heightOrHash)) {
@@ -210,7 +135,8 @@ export class BlockIndexer {
 
   async getAddressTransactions(address: string): Promise<Tx[]> {
     const allBlocks = await this.getAllBlocks();
-    const bestChainedBlocks = getBestChainedBlocks(allBlocks);
+    const bestChainedBlocks =
+      this.blockchainBuilder.getBestChainedBlocks(allBlocks);
     const transactionAddressIndex = await this.getTransactionAddressIndex(
       bestChainedBlocks,
     );
