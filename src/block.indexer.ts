@@ -1,8 +1,7 @@
-import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
-import { Cache } from 'cache-manager';
+import { Injectable } from '@nestjs/common';
+import { CacheService } from './cache.service';
 import { JsonBlockchainClient } from './providers/blockchain/JsonBlockchainClient';
 import { Block, Tx } from './providers/blockchain/_abstract';
-import { CacheService } from './cache.service';
 
 /**
  * TODO: Index the blocks provided by the client and expose via RESTful endpoint

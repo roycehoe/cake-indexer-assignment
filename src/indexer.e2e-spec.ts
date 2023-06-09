@@ -2,9 +2,9 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as request from 'supertest';
 import {
-  EXPECTED_VALID_BLOCKS,
   EXPECTED_VALID_BLOCK_HASH_d744db74fb70ed42767ae028a129365fb4d7de54ba1b6575fb047490554f8a7b,
   EXPECTED_VALID_BLOCK_HEIGHT_0,
+  EXPECTED_VALID_BLOCKS,
 } from '../test/expectedBlocks';
 
 import {
@@ -17,8 +17,10 @@ import {
 } from '../test/mockMissingBlocks';
 import { MOCK_API_RESPONSE_MISSING_TXID_9fb9c46b1d12dae8a4a35558f7ef4b047df3b444b1ead61d334e4f187f5f58b7 } from '../test/mockMissingTransactions';
 import { BlockIndexer } from './block.indexer';
+import { CacheService } from './cache.service';
 import { IndexerModule } from './indexer.module';
 import { Block } from './providers/blockchain/_abstract';
+import { JsonBlockchainClient } from './providers/blockchain/JsonBlockchainClient';
 
 describe('Indexer e2e', () => {
   let app: INestApplication;
@@ -90,11 +92,10 @@ describe('Indexer e2e', () => {
 describe('Indexer durability', () => {
   let app: INestApplication;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [IndexerModule],
     }).compile();
-
     app = moduleFixture.createNestApplication();
     await app.init();
   });
@@ -102,22 +103,34 @@ describe('Indexer durability', () => {
   afterEach(() => {
     jest.restoreAllMocks(); // Restore the original implementation after each test
   });
+  it('should cache data', async () => {
+    const cacheService = app.get<CacheService>(CacheService);
+    await cacheService.set('allBlocks', MOCK_INDEXER_SHUTDOWN_AT_HEIGHT_30, 0);
+    const cachedData = await cacheService.get('allBlocks');
+    expect(JSON.stringify(cachedData)).toBe(
+      JSON.stringify(MOCK_INDEXER_SHUTDOWN_AT_HEIGHT_30),
+    );
+  });
   it('should not lose indexed state if it goes down while indexing', async () => {
-    const blockIndexer = app.get<BlockIndexer>(BlockIndexer);
-    jest
-      .spyOn(blockIndexer, 'getAllBlocks')
-      .mockResolvedValue(MOCK_INDEXER_SHUTDOWN_AT_HEIGHT_30 as Block[]);
-
-    let test = await blockIndexer.findBlock('1');
-    console.log(test);
-    test = await blockIndexer.findBlock('50');
-    console.log(test);
-
-    throw Error('todo');
+    jest.mock('./indexer.module', () => {
+      throw new Error('service is down');
+    });
+    const cacheService = app.get<CacheService>(CacheService);
+    const cachedData = await cacheService.get('allBlocks');
+    expect(JSON.stringify(cachedData)).toBe(
+      JSON.stringify(MOCK_INDEXER_SHUTDOWN_AT_HEIGHT_30),
+    );
   });
 
-  // More specifically, killing the service while it's indexing then bringing it back up again
-  // should not result in re-indexing of the already indexed blocks
+  it('should start reindexing from previous state', async () => {
+    const jsonBlockchainClient =
+      app.get<JsonBlockchainClient>(JsonBlockchainClient);
+
+    const spy = jest.spyOn(jsonBlockchainClient, 'getBlocksAtHeight');
+    await request(app.getHttpServer()).get('/api/blocks');
+    expect(spy).toHaveBeenCalledTimes(170);
+    spy.mockRestore();
+  });
 });
 
 describe('Block invalidation', () => {
